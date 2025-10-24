@@ -5,8 +5,9 @@ import asyncio
 from uuid import uuid4
 
 import httpx
-from google.adk import ClientCallContext, ClientConfig, Message, RunConfig, TextPart
-from google.adk.a2a import A2ACardResolver, ClientFactory
+from a2a.client import A2ACardResolver, ClientCallContext, ClientConfig, ClientFactory
+from a2a.types import Message, TextPart
+from google.adk.agents.run_config import RunConfig
 
 from common.logger import get_logger
 from common.settings import settings

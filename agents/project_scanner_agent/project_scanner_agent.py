@@ -2,9 +2,9 @@
 
 import asyncio
 
-from google.adk import LlmAgent
-from google.adk.tools import FunctionTool
-from google.genai.client import LiteLlm
+from google.adk.agents.llm_agent import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+from google.adk.tools.function_tool import FunctionTool
 
 from agents.helpers.test_agent import run_agent_locally
 from common.logger import get_logger

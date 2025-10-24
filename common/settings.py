@@ -13,6 +13,7 @@ class AppSettings(BaseSettings):
         env_file_encoding="utf-8",
     )
 
+    openai_api_key: str
     openai_model: str = "openai/gpt-4o-mini"
     bind_host: str = "0.0.0.0"  # Shared bind host for all agents
     project_scanner_agent_url: str = "http://localhost:8301"

@@ -1,6 +1,14 @@
 """Helper utilities for running agents locally without A2A server."""
 
+from uuid import uuid4
+
 from google.adk import Agent
+from google.adk.agents.run_config import RunConfig
+from google.adk.artifacts import InMemoryArtifactService
+from google.adk.memory.in_memory_memory_service import InMemoryMemoryService
+from google.adk.runners import Runner
+from google.adk.sessions import InMemorySessionService
+from google.genai import types
 
 from common.logger import get_logger
 
@@ -16,8 +24,43 @@ async def run_agent_locally(agent: Agent, message: str) -> None:
     """
     logger.info("Sending message to agent: %s", message)
 
-    # Send message to agent
-    response = await agent.send(message)
+    # Create runner with in-memory services (app_name must match agent name)
+    runner = Runner(
+        app_name=agent.name,
+        agent=agent,
+        artifact_service=InMemoryArtifactService(),
+        session_service=InMemorySessionService(),
+        memory_service=InMemoryMemoryService(),
+    )
 
-    # Print response
-    logger.info("Agent response: %s", response)
+    # Generate IDs for session
+    user_id = "test_user"
+    session_id = str(uuid4())
+
+    # Create message content
+    content = types.Content(
+        role="user",
+        parts=[types.Part(text=message)],
+    )
+
+    # Run agent and collect events
+    print("\n" + "=" * 80)
+    print("Agent response:")
+    print("=" * 80)
+
+    async for event in runner.run_async(
+        user_id=user_id,
+        session_id=session_id,
+        new_message=content,
+        run_config=RunConfig(max_llm_calls=5),
+    ):
+        # Print agent response events
+        if hasattr(event, "content") and event.content:
+            for part in event.content.parts:
+                if hasattr(part, "text") and part.text:
+                    print(part.text)
+
+    print("=" * 80 + "\n")
+
+    # Close runner
+    await runner.close()

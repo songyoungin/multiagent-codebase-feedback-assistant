@@ -3,7 +3,8 @@
     "allow": [
       "Read(//Users/serena/Documents/development/private/multiagent-news-insight/**)",
       "Bash(tree:*)",
-      "Bash(uv sync:*)"
+      "Bash(uv sync:*)",
+      "Bash(uv run python:*)"
     ],
     "deny": [],
     "ask": []
