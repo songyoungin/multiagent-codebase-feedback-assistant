@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from common.logger import get_logger
-from common.schemas import FileInfo, ProjectStructure, ScanRequest
+from common.schemas import DEFAULT_EXCLUDE_PATTERNS, FileInfo, ProjectStructure
 
 logger = get_logger(__name__)
 
@@ -30,7 +30,7 @@ def scan_project(
 
     # Apply default exclude patterns
     if exclude_patterns is None:
-        exclude_patterns = ScanRequest().exclude_patterns
+        exclude_patterns = DEFAULT_EXCLUDE_PATTERNS
 
     # Validate path
     root = Path(root_path)
@@ -43,9 +43,7 @@ def scan_project(
         raise NotADirectoryError(f"Path is not a directory: {root_path}")
 
     # Recursive scan
-    files = _scan_directory_recursive(
-        root, exclude_patterns, max_depth, current_depth=0
-    )
+    files = _scan_directory_recursive(root, exclude_patterns, max_depth, current_depth=0)
 
     # Calculate statistics
     total_files = sum(1 for f in files if not f.is_directory)
@@ -120,9 +118,7 @@ def _scan_directory_recursive(
 
                 # If directory, call recursively
                 if item.is_dir():
-                    sub_files = _scan_directory_recursive(
-                        item, exclude_patterns, max_depth, current_depth + 1
-                    )
+                    sub_files = _scan_directory_recursive(item, exclude_patterns, max_depth, current_depth + 1)
                     results.extend(sub_files)
 
             except (OSError, PermissionError) as e:

@@ -3,7 +3,7 @@
 import uvicorn
 from a2a.types import AgentSkill
 
-from agents.helpers.create_a2a_server import attach_http_health, create_agent_a2a_server
+from agents.helpers.create_a2a_server import create_agent_a2a_server
 from agents.project_scanner_agent.project_scanner_agent import PROJECT_SCANNER_AGENT
 from common.logger import get_logger
 from common.settings import settings
@@ -30,23 +30,14 @@ def main() -> None:
     ]
 
     # Create A2A server
-    app = create_agent_a2a_server(
+    a2a_app = create_agent_a2a_server(
         agent=PROJECT_SCANNER_AGENT,
         name="Project Scanner Agent",
         description="Scan project structure using filesystem access.",
         version="0.1.0",
         skills=skills,
         url=settings.project_scanner_agent_url,
-        sub_agents=None,  # No sub-agents (leaf agent)
-    )
-
-    # Add HTTP /health endpoint
-    attach_http_health(
-        app,
-        app_name="Project Scanner Agent",
-        version="0.1.0",
-        sub_agents=None,
-    )
+    ).build()
 
     # Extract port from URL
     port = settings.get_port_from_url(settings.project_scanner_agent_url)
@@ -56,7 +47,7 @@ def main() -> None:
 
     # Run server with Uvicorn
     uvicorn.run(
-        app,
+        a2a_app,
         host=settings.bind_host,
         port=port,
     )

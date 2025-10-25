@@ -4,56 +4,197 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-이 프로젝트는 Python 코드베이스를 분석하여 코드 스멜, 아키텍처 이슈, 미사용 의존성, 문서 누락 등을 식별하는 AI 기반 멀티에이전트 시스템입니다. MCP(Model Context Protocol)를 활용하여 구현됩니다.
+This project is an AI-powered multi-agent system that analyzes Python codebases to identify code smells, architectural issues, unused dependencies, missing documentation, and more. It is implemented using the Model Context Protocol (MCP).
+
+## Project Structure
+
+```
+multiagent-codebase-feedback-assistant/
+├── agents/                          # Agent implementations
+│   ├── helpers/                     # Shared utilities for agents
+│   │   ├── create_a2a_server.py    # A2A server factory
+│   │   └── test_agent.py           # Local agent testing utilities
+│   └── project_scanner_agent/       # Project structure scanner
+│       ├── project_scanner_agent.py # Agent definition
+│       └── project_scanner_server.py # A2A server entry point
+├── common/                          # Shared modules
+│   ├── logger.py                   # Logging utilities
+│   ├── prompts.py                  # Agent system prompts
+│   ├── schemas.py                  # Data schemas
+│   └── settings.py                 # Configuration management
+├── tools/                           # Agent tools
+│   └── filesystem_tool.py          # Filesystem scanning tool
+├── typings/                         # Type stubs for third-party packages
+│   └── google/adk/                 # google-adk type stubs
+├── main.py                          # A2A client for testing agents
+└── pyproject.toml                   # Project configuration
+```
 
 ## Development Setup
 
 ### Package Management
-이 프로젝트는 `uv`를 패키지 관리자로 사용합니다.
+This project uses `uv` as the package manager.
 
 ```bash
-# 의존성 설치
+# Install dependencies
 uv sync
 
-# 개발 환경 활성화
+# Activate development environment
 source .venv/bin/activate
 
-# 의존성 추가
+# Add a dependency
 uv add <package-name>
 
-# 개발 의존성 추가
+# Add a development dependency
 uv add --dev <package-name>
 ```
 
-### Running the Application
+### Environment Configuration
+
+Create a `.env` file in the project root with the following variables:
 
 ```bash
-# 메인 애플리케이션 실행
-uv run python main.py
+# OpenAI API configuration (required)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# LLM model configuration
+OPENAI_MODEL=openai/gpt-4o-mini
+
+# Shared bind host for all agents
+BIND_HOST=0.0.0.0
+
+# Project Scanner Agent configuration
+PROJECT_SCANNER_AGENT_URL=http://localhost:8301
+
+# Filesystem MCP configuration
+FILESYSTEM_MCP_ENABLED=true
 ```
+
+See [.env.example](.env.example) for reference.
+
+### Running the Application
+
+#### Starting an Agent Server
+
+Each agent runs as a standalone A2A server:
+
+```bash
+# Start the Project Scanner Agent server
+uv run python -m agents.project_scanner_agent.project_scanner_server
+```
+
+The server will start on the port specified in `PROJECT_SCANNER_AGENT_URL` (default: 8301).
+
+#### Using the A2A Client
+
+Once an agent server is running, use the client to send requests:
+
+```bash
+# Send a command to the Project Scanner Agent
+uv run python main.py \
+  --agent-url http://localhost:8301 \
+  --command "Scan the project at /path/to/your/project"
+```
+
+The client supports:
+- `--agent-url`: Agent server URL (defaults to PROJECT_SCANNER_AGENT_URL from settings)
+- `--command`: User request message to send to the agent
 
 ## Core Architecture
 
 ### Multi-Agent System
-이 프로젝트는 여러 에이전트가 협력하여 코드베이스를 분석하는 구조를 가집니다:
-- 각 에이전트는 특정 분석 영역(코드 스멜, 아키텍처, 의존성, 문서)을 담당
-- MCP를 통해 에이전트 간 통신 및 조율이 이루어짐
+This project follows a collaborative multi-agent architecture for codebase analysis:
+- Each agent is responsible for a specific analysis domain (code smells, architecture, dependencies, documentation)
+- Agent coordination and communication is handled via MCP
+- Agents communicate via the A2A (Agent-to-Agent) protocol over HTTP
+
+### Implemented Agents
+
+#### Project Scanner Agent
+**Location**: `agents/project_scanner_agent/`
+
+Scans project directory structures and collects file/directory statistics.
+
+**Capabilities**:
+- Recursive directory scanning with configurable depth limits
+- Pattern-based exclusion (e.g., `.git`, `__pycache__`, `node_modules`)
+- File extension statistics
+- Metadata collection (file size, modification time)
+
+**Tools**:
+- `scan_project`: Scans project structure and returns a `ProjectStructure` object
+
+**Usage**:
+```bash
+# Start the server
+uv run python -m agents.project_scanner_agent.project_scanner_server
+
+# Send a request
+uv run python main.py \
+  --agent-url http://localhost:8301 \
+  --command "Scan the project at /path/to/project"
+```
 
 ### Key Dependencies
-- `google-adk[a2a]`: Google AI Development Kit with Agent-to-Agent 기능 사용
-- Python 3.13 이상 필수
+- `google-adk[a2a]`: Google AI Development Kit with Agent-to-Agent capabilities
+- `litellm`: Multi-provider LLM API wrapper (supports OpenAI, Anthropic, etc.)
+- `pydantic`: Data validation and settings management
+- `fastapi` + `uvicorn`: A2A server implementation
+- Python 3.13 or higher is required
 
 ## Development Guidelines
 
 ### Code Quality
-- 모든 공개 인터페이스에 타입 힌트를 명시적으로 작성
-- 가독성을 성능보다 우선시
-- 단일 책임 원칙(Single Responsibility Principle) 준수
+- Provide explicit type hints for all public interfaces
+- Prioritize readability over performance
+- Follow the Single Responsibility Principle
+
+### Type Checking
+This project uses strict type checking with mypy:
+
+```bash
+# Run type checking via pre-commit
+uv run pre-commit run mypy --all-files
+
+# Or run mypy directly
+uv run mypy .
+```
+
+**Configuration** (`pyproject.toml`):
+- Strict mode enabled (disallow untyped defs, incomplete defs)
+- Custom type stubs in `typings/` directory for third-party packages
+- Python 3.13 target
+
+**Type Stubs**:
+- `typings/google/adk/`: Type stubs for google-adk library
+- These stubs provide type hints for untyped third-party packages
+
+### Code Formatting & Linting
+
+Pre-commit hooks are configured to run on every commit:
+
+```bash
+# Install pre-commit hooks
+uv run pre-commit install
+
+# Run all checks manually
+uv run pre-commit run --all-files
+```
+
+**Tools**:
+- `ruff`: Fast Python linter and formatter (replaces Black, isort, flake8)
+- `mypy`: Static type checker
 
 ### Testing
-- 테스트는 테스트 클래스가 아닌 테스트 메소드 형식으로 작성
-- 모킹은 context manager 대신 decorator 사용
-- 테스트 메소드에는 docstring과 주석 포함 (모킹 조건 및 검증 내용 명시)
+- Write tests as test methods, not test classes
+- Use decorators for mocking instead of context managers
+- Include docstrings and comments in test methods (specify mock conditions and validation checks)
+
+### Documentation
+- **All docstrings and inline comments must be written in English**
+- Follow Google-style docstrings for all public classes and methods
+- Keep docstrings concise and clear
+- Avoid unnecessary line breaks in docstrings
 
 ### Virtual Environment
-가상 환경은 프로젝트 루트의 `.venv` 디렉토리에 위치합니다. 코드 실행 명령 제공 시 `.venv` 활성화를 포함하세요.
+The virtual environment is located in the `.venv` directory at the project root. Include `.venv` activation when providing code execution commands.

@@ -1,12 +1,9 @@
 """Project Scanner Agent definition."""
 
-import asyncio
-
 from google.adk.agents.llm_agent import LlmAgent
 from google.adk.models.lite_llm import LiteLlm
 from google.adk.tools.function_tool import FunctionTool
 
-from agents.helpers.test_agent import run_agent_locally
 from common.logger import get_logger
 from common.prompts import PROJECT_SCANNER_PROMPT
 from common.settings import settings
@@ -29,9 +26,3 @@ PROJECT_SCANNER_AGENT = LlmAgent(
 )
 
 logger.info("Project Scanner Agent initialized successfully")
-
-
-if __name__ == "__main__":
-    # Run the agent locally without A2A server
-    test_message = "Scan the project at /Users/serena/Documents/development/private/multiagent-codebase-feedback-assistant"
-    asyncio.run(run_agent_locally(PROJECT_SCANNER_AGENT, test_message))

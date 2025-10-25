@@ -4,6 +4,19 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+# Default exclude patterns
+DEFAULT_EXCLUDE_PATTERNS = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "venv",
+    "node_modules",
+    ".pytest_cache",
+    ".mypy_cache",
+    "*.pyc",
+    ".DS_Store",
+]
+
 
 class FileInfo(BaseModel):
     """File information schema."""
@@ -30,15 +43,5 @@ class ScanRequest(BaseModel):
     """Scan request schema."""
 
     root_path: str
-    exclude_patterns: list[str] = [
-        ".git",
-        "__pycache__",
-        ".venv",
-        "venv",
-        "node_modules",
-        ".pytest_cache",
-        ".mypy_cache",
-        "*.pyc",
-        ".DS_Store",
-    ]
+    exclude_patterns: list[str] = DEFAULT_EXCLUDE_PATTERNS.copy()
     max_depth: int | None = None

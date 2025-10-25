@@ -25,7 +25,7 @@ async def run_agent_locally(agent: Agent, message: str) -> None:
     logger.info("Sending message to agent: %s", message)
 
     # Create runner with in-memory services (app_name must match agent name)
-    runner = Runner(
+    runner: Runner = Runner(
         app_name=agent.name,
         agent=agent,
         artifact_service=InMemoryArtifactService(),
@@ -44,9 +44,9 @@ async def run_agent_locally(agent: Agent, message: str) -> None:
     )
 
     # Run agent and collect events
-    print("\n" + "=" * 80)
-    print("Agent response:")
-    print("=" * 80)
+    logger.info("\n" + "=" * 80)
+    logger.info("Agent response:")
+    logger.info("=" * 80)
 
     async for event in runner.run_async(
         user_id=user_id,
@@ -56,11 +56,13 @@ async def run_agent_locally(agent: Agent, message: str) -> None:
     ):
         # Print agent response events
         if hasattr(event, "content") and event.content:
-            for part in event.content.parts:
-                if hasattr(part, "text") and part.text:
-                    print(part.text)
+            parts = event.content.parts
+            if parts is not None:
+                for part in parts:
+                    if hasattr(part, "text") and part.text:
+                        logger.info(part.text)
 
-    print("=" * 80 + "\n")
+    logger.info("=" * 80 + "\n")
 
     # Close runner
     await runner.close()

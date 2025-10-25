@@ -4,7 +4,10 @@
       "Read(//Users/serena/Documents/development/private/multiagent-news-insight/**)",
       "Bash(tree:*)",
       "Bash(uv sync:*)",
-      "Bash(uv run python:*)"
+      "Bash(uv run python:*)",
+      "Bash(uv run mypy:*)",
+      "Bash(pre-commit run:*)",
+      "Bash(uv pip:*)"
     ],
     "deny": [],
     "ask": []
