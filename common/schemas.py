@@ -11,8 +11,7 @@ DEFAULT_EXCLUDE_PATTERNS = [
     ".venv",
     "venv",
     "node_modules",
-    ".pytest_cache",
-    ".mypy_cache",
+    ".*_cache",
     "*.pyc",
     ".DS_Store",
 ]

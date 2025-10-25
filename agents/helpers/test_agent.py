@@ -24,9 +24,9 @@ async def run_agent_locally(agent: Agent, message: str) -> None:
     """
     logger.info("Sending message to agent: %s", message)
 
-    # Create runner with in-memory services (app_name must match agent name)
+    # Create runner with in-memory services
     runner: Runner = Runner(
-        app_name=agent.name,
+        app_name="agents",
         agent=agent,
         artifact_service=InMemoryArtifactService(),
         session_service=InMemorySessionService(),

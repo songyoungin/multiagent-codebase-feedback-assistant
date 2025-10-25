@@ -7,7 +7,9 @@
       "Bash(uv run python:*)",
       "Bash(uv run mypy:*)",
       "Bash(pre-commit run:*)",
-      "Bash(uv pip:*)"
+      "Bash(uv pip:*)",
+      "Bash(uv run ruff:*)",
+      "Bash(timeout 5 uv run python:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,7 +3,7 @@
 import fnmatch
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from common.logger import get_logger
 from common.schemas import DEFAULT_EXCLUDE_PATTERNS, FileInfo, ProjectStructure
@@ -13,8 +13,8 @@ logger = get_logger(__name__)
 
 def scan_project(
     root_path: str,
-    exclude_patterns: list[str] | None = None,
-    max_depth: int | None = None,
+    exclude_patterns: Optional[list[str]] = None,  # noqa: UP045 (incompatible with google-adk function parsing)
+    max_depth: Optional[int] = None,  # noqa: UP045 (incompatible with google-adk function parsing)
 ) -> dict[str, Any]:
     """Scan the project structure.
 
@@ -28,9 +28,11 @@ def scan_project(
     """
     logger.info(f"Starting project scan at: {root_path}")
 
-    # Apply default exclude patterns
-    if exclude_patterns is None:
-        exclude_patterns = DEFAULT_EXCLUDE_PATTERNS
+    # Always merge with default exclude patterns
+    exclude_patterns = list(set(DEFAULT_EXCLUDE_PATTERNS) | set(exclude_patterns or []))
+
+    logger.info(f"Exclude patterns: {exclude_patterns}")
+    logger.info(f"Max depth: {max_depth}")
 
     # Validate path
     root = Path(root_path)
@@ -61,7 +63,7 @@ def scan_project(
         f"{len(file_extensions)} unique extensions"
     )
 
-    # Create ProjectStructure
+    # Create ProjectStructure and return as dictionary
     result = ProjectStructure(
         root_path=root_path,
         total_files=total_files,
@@ -69,9 +71,9 @@ def scan_project(
         files=files,
         file_extensions=file_extensions,
         scanned_at=datetime.now(),
-    )
+    ).model_dump()
 
-    return result.model_dump()
+    return result
 
 
 def _scan_directory_recursive(

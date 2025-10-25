@@ -7,9 +7,9 @@ repos:
         entry: uv run ruff check
         language: system
         types: [python]
-        args: [--fix]
+        args: [--fix, --output-format=full, --show-fixes]
 
-      # Ruff formatter
+      # Ruff formatter  
       - id: ruff-format
         name: ruff format
         entry: uv run ruff format

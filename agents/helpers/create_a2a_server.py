@@ -61,7 +61,7 @@ def create_agent_a2a_server(
     )
 
     runner = Runner(
-        app_name=agent_card.name,
+        app_name="agents",
         agent=agent,
         artifact_service=InMemoryArtifactService(),
         session_service=InMemorySessionService(),
