@@ -14,16 +14,20 @@ multiagent-codebase-feedback-assistant/
 │   ├── helpers/                     # Shared utilities for agents
 │   │   ├── create_a2a_server.py    # A2A server factory
 │   │   └── test_agent.py           # Local agent testing utilities
-│   └── project_scanner_agent/       # Project structure scanner
-│       ├── project_scanner_agent.py # Agent definition
-│       └── project_scanner_server.py # A2A server entry point
+│   ├── project_scanner/             # Project structure scanner
+│   │   ├── project_scanner_agent.py # Agent definition
+│   │   └── project_scanner_server.py # A2A server entry point
+│   └── dependency_checker/          # Dependency checker
+│       ├── dependency_checker_agent.py # Agent definition
+│       └── dependency_checker_server.py # A2A server entry point
 ├── common/                          # Shared modules
 │   ├── logger.py                   # Logging utilities
 │   ├── prompts.py                  # Agent system prompts
 │   ├── schemas.py                  # Data schemas
 │   └── settings.py                 # Configuration management
 ├── tools/                           # Agent tools
-│   └── filesystem_tool.py          # Filesystem scanning tool
+│   ├── filesystem_tool.py          # Filesystem scanning tool
+│   └── dependency_checker_tool.py  # Dependency analysis tool
 ├── typings/                         # Type stubs for third-party packages
 │   └── google/adk/                 # google-adk type stubs
 ├── main.py                          # A2A client for testing agents
@@ -66,6 +70,9 @@ BIND_HOST=0.0.0.0
 # Project Scanner Agent configuration
 PROJECT_SCANNER_AGENT_URL=http://localhost:8301
 
+# Dependency Checker Agent configuration
+DEPENDENCY_CHECKER_AGENT_URL=http://localhost:8302
+
 # Filesystem MCP configuration
 FILESYSTEM_MCP_ENABLED=true
 ```
@@ -80,10 +87,15 @@ Each agent runs as a standalone A2A server:
 
 ```bash
 # Start the Project Scanner Agent server
-uv run python -m agents.project_scanner_agent.project_scanner_server
+uv run python -m agents.project_scanner.project_scanner_server
+
+# Start the Dependency Checker Agent server
+uv run python -m agents.dependency_checker.dependency_checker_server
 ```
 
-The server will start on the port specified in `PROJECT_SCANNER_AGENT_URL` (default: 8301).
+The servers will start on the ports specified in their respective URL settings:
+- Project Scanner: default 8301
+- Dependency Checker: default 8302
 
 #### Using the A2A Client
 
@@ -111,7 +123,7 @@ This project follows a collaborative multi-agent architecture for codebase analy
 ### Implemented Agents
 
 #### Project Scanner Agent
-**Location**: `agents/project_scanner_agent/`
+**Location**: `agents/project_scanner/`
 
 Scans project directory structures and collects file/directory statistics.
 
@@ -127,12 +139,42 @@ Scans project directory structures and collects file/directory statistics.
 **Usage**:
 ```bash
 # Start the server
-uv run python -m agents.project_scanner_agent.project_scanner_server
+uv run python -m agents.project_scanner.project_scanner_server
 
 # Send a request
 uv run python main.py \
   --agent-url http://localhost:8301 \
   --command "Scan the project at /path/to/project"
+```
+
+#### Dependency Checker Agent
+**Location**: `agents/dependency_checker/`
+
+Analyzes Python project dependencies to identify unused packages.
+
+**Capabilities**:
+- Parse declared dependencies from `pyproject.toml`
+- Extract actually imported packages from Python source files using AST
+- Identify unused dependencies (declared but never imported)
+- Filter out standard library modules
+- Pattern-based file exclusion
+
+**Tools**:
+- `check_unused_dependencies`: Analyzes project dependencies and returns a `DependencyCheckResult` object
+  - Parses `[project.dependencies]` from pyproject.toml
+  - Scans all Python files for import statements
+  - Compares declared vs. used packages
+  - Returns detailed results with actionable recommendations
+
+**Usage**:
+```bash
+# Start the server
+uv run python -m agents.dependency_checker.dependency_checker_server
+
+# Send a request
+uv run python main.py \
+  --agent-url http://localhost:8302 \
+  --command "Check unused dependencies in /path/to/project"
 ```
 
 ### Key Dependencies

@@ -17,6 +17,7 @@ class AppSettings(BaseSettings):
     openai_model: str = "openai/gpt-4o-mini"
     bind_host: str = "0.0.0.0"  # Shared bind host for all agents
     project_scanner_agent_url: str = "http://localhost:8301"
+    dependency_checker_agent_url: str = "http://localhost:8302"
     filesystem_mcp_enabled: bool = True
 
     def get_port_from_url(self, url: str) -> int:

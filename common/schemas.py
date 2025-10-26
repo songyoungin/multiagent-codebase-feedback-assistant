@@ -44,3 +44,13 @@ class ScanRequest(BaseModel):
     root_path: str
     exclude_patterns: list[str] = DEFAULT_EXCLUDE_PATTERNS.copy()
     max_depth: int | None = None
+
+
+class DependencyCheckResult(BaseModel):
+    """Dependency check result schema."""
+
+    project_path: str
+    declared_dependencies: list[str]
+    used_dependencies: list[str]
+    unused_dependencies: list[str]
+    checked_at: datetime

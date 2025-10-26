@@ -4,7 +4,7 @@ import uvicorn
 from a2a.types import AgentSkill
 
 from agents.helpers.create_a2a_server import create_agent_a2a_server
-from agents.project_scanner_agent.project_scanner_agent import PROJECT_SCANNER_AGENT
+from agents.project_scanner.project_scanner_agent import PROJECT_SCANNER_AGENT
 from common.logger import get_logger
 from common.settings import settings
 
