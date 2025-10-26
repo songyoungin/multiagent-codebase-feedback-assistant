@@ -240,3 +240,162 @@ uv run pre-commit run --all-files
 
 ### Virtual Environment
 The virtual environment is located in the `.venv` directory at the project root. Include `.venv` activation when providing code execution commands.
+
+## Creating New Agents
+
+### Agent Architecture Pattern
+
+Each agent follows a consistent three-file structure:
+
+```
+agents/<agent_name>/
+├── __init__.py                    # Empty module marker
+├── <agent_name>_agent.py         # Agent definition
+└── <agent_name>_server.py        # A2A server entry point
+```
+
+### Step-by-Step Agent Creation
+
+1. **Create Tool** (in `tools/`)
+   - Tools collect and process data
+   - Return structured data (Pydantic models)
+   - Should NOT make decisions or call LLM
+   - Must use `Optional[type]` instead of `type | None` for optional parameters (google-adk function parsing limitation)
+
+2. **Define Schema** (in `common/schemas.py`)
+   - Create Pydantic models for tool outputs
+   - Use clear, descriptive field names
+
+3. **Write Agent Prompt** (in `common/prompts.py`)
+   - **Critical**: Explicitly state "Call tool ONLY ONCE" to prevent multiple calls
+   - Use step-by-step instructions (Step 1, Step 2, etc.)
+   - Clearly define what data the tool provides
+   - Specify analysis tasks for the agent (not the tool)
+
+4. **Create Agent Definition** (`agents/<agent_name>/<agent_name>_agent.py`)
+```python
+from google.adk.agents.llm_agent import LlmAgent
+from google.adk.models.lite_llm import LiteLlm
+from google.adk.tools.function_tool import FunctionTool
+
+from common.prompts import YOUR_AGENT_PROMPT
+from common.settings import settings
+from tools.your_tool import your_function
+
+YOUR_TOOL = FunctionTool(func=your_function)
+YOUR_MODEL = LiteLlm(model=settings.openai_model, tool_choice="auto")
+
+YOUR_AGENT = LlmAgent(
+    name="your_agent_name",
+    model=YOUR_MODEL,
+    instruction=YOUR_AGENT_PROMPT,
+    tools=[YOUR_TOOL],
+)
+```
+
+5. **Create A2A Server** (`agents/<agent_name>/<agent_name>_server.py`)
+   - Use `create_agent_a2a_server` helper
+   - Define agent URL in `common/settings.py`
+   - Add URL to `.env.example`
+
+### Agent-Tool Separation of Concerns
+
+**Tools** (in `tools/`):
+- Collect data from filesystem, code, etc.
+- Process and structure data
+- Return Pydantic models
+- No LLM calls, no decisions
+
+**Agents** (in `agents/`):
+- Receive structured data from tools
+- Analyze and interpret data
+- Make decisions using LLM knowledge
+- Generate user-friendly reports
+
+**Example**: Dependency Checker
+- **Tool**: Scans pyproject.toml, extracts imports via AST, reads venv metadata
+- **Agent**: Determines if packages are unused, considers transitive dependencies, generates recommendations
+
+### Important: Preventing Multiple Tool Calls
+
+With `tool_choice="auto"`, LLM may call tools multiple times if it thinks more information is needed. Prevent this in prompts:
+
+```
+CRITICAL: Call <tool_name> ONLY ONCE at the beginning. Do NOT call it again.
+
+Step 1: Call the tool ONCE
+- The tool provides complete information
+- You do NOT need to call it multiple times
+
+Step 2: Analyze the results (DO NOT call the tool again)
+- The tool returns ALL necessary information: ...
+```
+
+## Dependency Checker Implementation
+
+### Hybrid Analysis Approach
+
+The Dependency Checker uses a two-stage approach:
+
+**Stage 1: Venv Metadata Analysis (Tool)**
+- Searches project's virtual environment (`.venv`, `venv`, etc.)
+- Reads `.dist-info/top_level.txt` files
+- Directly maps packages to import names (e.g., `google-adk` → `{google, a2a}`)
+- Packages with metadata are definitively classified as used/unused
+
+**Stage 2: Agent Analysis (LLM)**
+- Analyzes packages WITHOUT metadata
+- Uses LLM knowledge of package-import mappings (e.g., `scikit-learn` → `sklearn`)
+- Considers transitive dependencies
+- Generates final report
+
+### Why This Approach?
+
+- **Efficient**: Most packages have metadata → fast, free classification
+- **Accurate**: Venv metadata is ground truth
+- **Extensible**: LLM handles edge cases without hardcoded mappings
+- **Scalable**: Works for any project without maintaining mapping tables
+
+### Tool Output Schema
+
+```python
+DependencyCheckResult:
+    declared_dependencies: list[str]        # From pyproject.toml
+    used_dependencies: list[str]            # Import statements found
+    unused_dependencies: list[str]          # Confirmed unused (via metadata)
+    packages_without_metadata: list[str]    # Needs agent analysis
+```
+
+## Common Development Patterns
+
+### Adding Settings
+
+1. Add field to `AppSettings` class in `common/settings.py`
+2. Add to `.env.example`
+3. Document in CLAUDE.md environment configuration section
+
+### Type Hints for Third-Party Packages
+
+If mypy complains about missing type information:
+
+1. Create stubs in `typings/<package_name>/`
+2. Add stub files (e.g., `__init__.pyi`)
+3. Configure `mypy_path = "typings"` in `pyproject.toml`
+
+### Google-ADK Function Tool Constraints
+
+When creating tools for google-adk agents:
+
+```python
+# ❌ This will fail to parse
+def my_tool(param: str | None = None) -> dict:
+    ...
+
+# ✅ Use Optional instead
+from typing import Optional
+
+def my_tool(param: Optional[str] = None) -> dict:  # noqa: UP045
+    ...
+```
+
+Add `# noqa: UP045` to suppress ruff's suggestion to use `| None` syntax.
