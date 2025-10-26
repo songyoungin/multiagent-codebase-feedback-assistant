@@ -53,4 +53,5 @@ class DependencyCheckResult(BaseModel):
     declared_dependencies: list[str]
     used_dependencies: list[str]
     unused_dependencies: list[str]
+    packages_without_metadata: list[str]
     checked_at: datetime
