@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 CHECK_DEPENDENCIES_TOOL = FunctionTool(func=check_unused_dependencies)
 
 # Create LLM model with automatic tool selection
-CHECKER_MODEL = LiteLlm(model=settings.openai_model, tool_choice="auto")
+CHECKER_MODEL = LiteLlm(model=settings.default_model, tool_choice="auto")
 
 # Create agent with model, prompt, and tools
 DEPENDENCY_CHECKER_AGENT = LlmAgent(

@@ -14,10 +14,16 @@ class AppSettings(BaseSettings):
     )
 
     openai_api_key: str = ""
-    openai_model: str = "openai/gpt-4o-mini"
+    gemini_api_key: str = ""
+    default_model: str = "openai/gpt-4o-mini"
+    large_context_model: str = "gemini/gemini-2.0-flash-exp"
     bind_host: str = "0.0.0.0"  # Shared bind host for all agents
     project_scanner_agent_url: str = "http://localhost:8301"
     dependency_checker_agent_url: str = "http://localhost:8302"
+    documentation_generator_agent_url: str = "http://localhost:8303"
+    srp_violation_detector_agent_url: str = "http://localhost:8304"
+    naming_quality_analyzer_agent_url: str = "http://localhost:8305"
+    orchestrator_agent_url: str = "http://localhost:8306"
     filesystem_mcp_enabled: bool = True
 
     def get_port_from_url(self, url: str) -> int:

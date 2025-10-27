@@ -1,0 +1,125 @@
+services:
+  project-scanner:
+    build: .
+    container_name: project-scanner
+    command: uv run python -m agents.project_scanner.project_scanner_server
+    ports:
+      - "8301:8301"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
+      - BIND_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8301/.well-known/agent-card.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  dependency-checker:
+    build: .
+    container_name: dependency-checker
+    command: uv run python -m agents.dependency_checker.dependency_checker_server
+    ports:
+      - "8302:8302"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
+      - BIND_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8302/.well-known/agent-card.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  documentation-generator:
+    build: .
+    container_name: documentation-generator
+    command: uv run python -m agents.documentation_generator.documentation_generator_server
+    ports:
+      - "8303:8303"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
+      - BIND_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8303/.well-known/agent-card.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  srp-violation-detector:
+    build: .
+    container_name: srp-violation-detector
+    command: uv run python -m agents.srp_violation_detector.srp_violation_detector_server
+    ports:
+      - "8304:8304"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
+      - BIND_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8304/.well-known/agent-card.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  naming-quality-analyzer:
+    build: .
+    container_name: naming-quality-analyzer
+    command: uv run python -m agents.naming_quality_analyzer.naming_quality_analyzer_server
+    ports:
+      - "8305:8305"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
+      - BIND_HOST=0.0.0.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8305/.well-known/agent-card.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  orchestrator:
+    build: .
+    container_name: orchestrator
+    command: uv run python -m agents.orchestrator.orchestrator_server
+    ports:
+      - "8306:8306"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
+      - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
+      - BIND_HOST=0.0.0.0
+      - PROJECT_SCANNER_AGENT_URL=http://project-scanner:8301
+      - DEPENDENCY_CHECKER_AGENT_URL=http://dependency-checker:8302
+      - DOCUMENTATION_GENERATOR_AGENT_URL=http://documentation-generator:8303
+      - SRP_VIOLATION_DETECTOR_AGENT_URL=http://srp-violation-detector:8304
+      - NAMING_QUALITY_ANALYZER_AGENT_URL=http://naming-quality-analyzer:8305
+    depends_on:
+      - project-scanner
+      - dependency-checker
+      - documentation-generator
+      - srp-violation-detector
+      - naming-quality-analyzer
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8306/.well-known/agent-card.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped

@@ -10,7 +10,16 @@
       "Bash(uv pip:*)",
       "Bash(uv run ruff:*)",
       "Bash(timeout 5 uv run python:*)",
-      "Bash(uv run pre-commit:*)"
+      "Bash(uv run pre-commit:*)",
+      "Bash(docker info:*)",
+      "Bash(echo:*)",
+      "Read(//var/run/**)",
+      "Bash(python3:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker-compose version:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []

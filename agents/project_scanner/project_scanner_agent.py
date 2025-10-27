@@ -15,7 +15,7 @@ logger = get_logger(__name__)
 SCAN_PROJECT_TOOL = FunctionTool(func=scan_project)
 
 # Create LLM model with automatic tool selection
-SCANNER_MODEL = LiteLlm(model=settings.openai_model, tool_choice="auto")
+SCANNER_MODEL = LiteLlm(model=settings.default_model, tool_choice="auto")
 
 # Create agent with model, prompt, and tools
 PROJECT_SCANNER_AGENT = LlmAgent(

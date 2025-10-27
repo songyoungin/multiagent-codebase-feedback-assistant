@@ -17,9 +17,15 @@ multiagent-codebase-feedback-assistant/
 │   ├── project_scanner/             # Project structure scanner
 │   │   ├── project_scanner_agent.py # Agent definition
 │   │   └── project_scanner_server.py # A2A server entry point
-│   └── dependency_checker/          # Dependency checker
-│       ├── dependency_checker_agent.py # Agent definition
-│       └── dependency_checker_server.py # A2A server entry point
+│   ├── dependency_checker/          # Dependency checker
+│   │   ├── dependency_checker_agent.py # Agent definition
+│   │   └── dependency_checker_server.py # A2A server entry point
+│   ├── documentation_generator/     # Documentation analyzer
+│   │   ├── documentation_generator_agent.py # Agent definition
+│   │   └── documentation_generator_server.py # A2A server entry point
+│   └── srp_violation_detector/      # SRP violation detector
+│       ├── srp_violation_detector_agent.py # Agent definition
+│       └── srp_violation_detector_server.py # A2A server entry point
 ├── common/                          # Shared modules
 │   ├── logger.py                   # Logging utilities
 │   ├── prompts.py                  # Agent system prompts
@@ -27,7 +33,9 @@ multiagent-codebase-feedback-assistant/
 │   └── settings.py                 # Configuration management
 ├── tools/                           # Agent tools
 │   ├── filesystem_tool.py          # Filesystem scanning tool
-│   └── dependency_checker_tool.py  # Dependency analysis tool
+│   ├── dependency_checker_tool.py  # Dependency analysis tool
+│   ├── documentation_analyzer_tool.py # Documentation coverage tool
+│   └── srp_analyzer_tool.py        # SRP violation analysis tool
 ├── typings/                         # Type stubs for third-party packages
 │   └── google/adk/                 # google-adk type stubs
 ├── main.py                          # A2A client for testing agents
@@ -73,6 +81,12 @@ PROJECT_SCANNER_AGENT_URL=http://localhost:8301
 # Dependency Checker Agent configuration
 DEPENDENCY_CHECKER_AGENT_URL=http://localhost:8302
 
+# Documentation Generator Agent configuration
+DOCUMENTATION_GENERATOR_AGENT_URL=http://localhost:8303
+
+# SRP Violation Detector Agent configuration
+SRP_VIOLATION_DETECTOR_AGENT_URL=http://localhost:8304
+
 # Filesystem MCP configuration
 FILESYSTEM_MCP_ENABLED=true
 ```
@@ -91,11 +105,19 @@ uv run python -m agents.project_scanner.project_scanner_server
 
 # Start the Dependency Checker Agent server
 uv run python -m agents.dependency_checker.dependency_checker_server
+
+# Start the Documentation Generator Agent server
+uv run python -m agents.documentation_generator.documentation_generator_server
+
+# Start the SRP Violation Detector Agent server
+uv run python -m agents.srp_violation_detector.srp_violation_detector_server
 ```
 
 The servers will start on the ports specified in their respective URL settings:
 - Project Scanner: default 8301
 - Dependency Checker: default 8302
+- Documentation Generator: default 8303
+- SRP Violation Detector: default 8304
 
 #### Using the A2A Client
 
@@ -116,9 +138,10 @@ The client supports:
 
 ### Multi-Agent System
 This project follows a collaborative multi-agent architecture for codebase analysis:
-- Each agent is responsible for a specific analysis domain (code smells, architecture, dependencies, documentation)
+- Each agent is responsible for a specific analysis domain (project structure, dependencies, documentation, code smells)
 - Agent coordination and communication is handled via MCP
 - Agents communicate via the A2A (Agent-to-Agent) protocol over HTTP
+- Agents use semantic analysis (LLM understanding) rather than just static metrics
 
 ### Implemented Agents
 
@@ -175,6 +198,91 @@ uv run python -m agents.dependency_checker.dependency_checker_server
 uv run python main.py \
   --agent-url http://localhost:8302 \
   --command "Check unused dependencies in /path/to/project"
+```
+
+#### Documentation Generator Agent
+**Location**: `agents/documentation_generator/`
+
+Analyzes Python code documentation coverage and identifies missing docstrings.
+
+**Capabilities**:
+- Parse Python files using AST to find classes and functions
+- Check for missing docstrings on public and private items
+- Calculate documentation coverage percentage
+- Extract function/class signatures with type hints
+- Prioritize missing docstrings by importance (High/Medium/Low)
+
+**Tools**:
+- `analyze_documentation`: Analyzes docstring coverage and returns a `DocumentationAnalysisResult` object
+  - Scans all Python files for class/function definitions
+  - Checks docstring presence using `ast.get_docstring()`
+  - Extracts complete signatures including parameters and return types
+  - Optional: `include_private=true` to analyze private methods/functions
+
+**Usage**:
+```bash
+# Start the server
+uv run python -m agents.documentation_generator.documentation_generator_server
+
+# Send a request (public items only)
+uv run python main.py \
+  --agent-url http://localhost:8303 \
+  --command "Analyze documentation in /path/to/project"
+
+# Include private methods
+uv run python main.py \
+  --agent-url http://localhost:8303 \
+  --command "Analyze documentation including private methods in /path/to/project"
+```
+
+#### SRP Violation Detector Agent
+**Location**: `agents/srp_violation_detector/`
+
+Detects Single Responsibility Principle (SRP) violations in Python code through semantic analysis.
+
+**Capabilities**:
+- Extract functions and classes with full source code using AST
+- Capture function calls, imports, parameters, and code length for context
+- Use LLM to perform semantic analysis (not just metrics)
+- Identify code with multiple responsibilities or reasons to change
+- Categorize violations by severity (Critical/High/Medium/Low)
+- Provide specific refactoring suggestions
+
+**Tools**:
+- `analyze_srp_violations`: Extracts code items with rich context and returns an `SRPAnalysisResult` object
+  - Scans all Python files for function/class definitions
+  - Extracts full source code, function calls, imports used
+  - Captures signatures with type hints, parameter counts, code length
+  - Optional: `max_items=N` to limit analysis (default: 20, manages LLM context)
+  - Optional: `include_private=true` to analyze private methods
+
+**What Makes This Different from Static Tools**:
+Unlike ruff, pylint, or other static analyzers that check syntax and metrics, this agent:
+- Understands semantic meaning and relationships in code
+- Identifies responsibilities across different domains (e.g., validation + database + email)
+- Considers "reasons to change" rather than just code length
+- Analyzes function call patterns and import diversity for coupling detection
+- Provides context-aware refactoring suggestions
+
+**Usage**:
+```bash
+# Start the server
+uv run python -m agents.srp_violation_detector.srp_violation_detector_server
+
+# Send a request (analyze public items, max 20)
+uv run python main.py \
+  --agent-url http://localhost:8304 \
+  --command "Analyze SRP violations in /path/to/project"
+
+# Analyze more items
+uv run python main.py \
+  --agent-url http://localhost:8304 \
+  --command "Analyze SRP violations in /path/to/project, check up to 50 items"
+
+# Include private methods
+uv run python main.py \
+  --agent-url http://localhost:8304 \
+  --command "Analyze SRP violations including private methods in /path/to/project"
 ```
 
 ### Key Dependencies
