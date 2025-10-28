@@ -1,17 +1,20 @@
 """API client for agent servers."""
 
 from typing import Any
+from uuid import uuid4
 
 import httpx
+from a2a.client import A2ACardResolver, ClientCallContext, ClientConfig, ClientFactory
+from a2a.types import Message, Part, Role, TextPart
 from rich.console import Console
 
 console = Console()
 
 
 class AgentClient:
-    """Client for calling agent APIs."""
+    """Client for calling agent APIs using A2A protocol."""
 
-    def __init__(self, timeout: int = 120) -> None:
+    def __init__(self, timeout: int = 600) -> None:
         """Initialize agent client.
 
         Args:
@@ -131,38 +134,116 @@ class AgentClient:
         return self._call_agent("orchestrator", query)
 
     def _call_agent(self, agent_name: str, command: str) -> dict[str, Any]:
-        """Call agent API.
+        """Call agent API using A2A protocol.
 
         Args:
             agent_name: Name of the agent
             command: Command to send
 
         Returns:
-            Agent response
+            Agent response as dict with 'response' key
         """
+        import asyncio
+
         endpoint = self.endpoints.get(agent_name)
         if not endpoint:
             raise ValueError(f"Unknown agent: {agent_name}")
 
         try:
-            with httpx.Client(timeout=self.timeout) as client:
-                response = client.post(
-                    f"{endpoint}/api/chat",
-                    json={"message": command},
-                )
-                response.raise_for_status()
-                result: dict[str, Any] = response.json()
-                return result
-
+            result = asyncio.run(self._async_call_agent(endpoint, command))
+            return result
         except httpx.ConnectError:
             console.print(f"✗ [red]Failed to connect to {agent_name}. Is the server running?[/red]")
             raise
         except httpx.TimeoutException:
             console.print(f"✗ [red]Request to {agent_name} timed out[/red]")
             raise
-        except httpx.HTTPStatusError as e:
-            console.print(f"✗ [red]HTTP error from {agent_name}: {e.response.status_code}[/red]")
-            raise
         except Exception as e:
             console.print(f"✗ [red]Unexpected error calling {agent_name}: {e}[/red]")
             raise
+
+    async def _async_call_agent(self, agent_url: str, command: str) -> dict[str, Any]:
+        """Async implementation of agent call using A2A protocol.
+
+        Args:
+            agent_url: Agent URL to connect to
+            command: Command to send
+
+        Returns:
+            Dict with 'response' key containing agent's final message
+        """
+        async with httpx.AsyncClient(timeout=self.timeout) as httpx_client:
+            # Get Agent Card
+            card_resolver = A2ACardResolver(httpx_client=httpx_client, base_url=agent_url)
+            card = await card_resolver.get_agent_card()
+
+            # Override card URL to use localhost instead of internal Docker hostname
+            # This is necessary because CLI runs outside Docker but agents run inside
+            card.url = agent_url
+
+            # Create client with streaming enabled
+            client_config = ClientConfig(httpx_client=httpx_client, streaming=True)
+            factory = ClientFactory(config=client_config)
+            client = factory.create(card=card)
+
+            # Send message
+            request = Message(
+                message_id=str(uuid4()),
+                role=Role.user,
+                parts=[Part(TextPart(text=command))],
+            )
+
+            context = ClientCallContext()
+            result = client.send_message(request, context=context)
+
+            # Collect streaming events
+            last_event = None
+            async for event in result:
+                last_event = event
+
+            # Extract final message from task history
+            if last_event is not None:
+                task = self._extract_task_from_event(last_event)
+                final_message = self._get_final_message_text(task)
+                return {"response": final_message}
+
+            return {"response": "No response from agent"}
+
+    def _extract_task_from_event(self, event: Any) -> Any:
+        """Extract Task object from event.
+
+        Args:
+            event: Event from streaming response (can be tuple or Task)
+
+        Returns:
+            Task object
+        """
+        return event[0] if isinstance(event, (tuple, list)) else event
+
+    def _get_final_message_text(self, task: Any) -> str:
+        """Get final message text from Task history.
+
+        Args:
+            task: Task object containing history
+
+        Returns:
+            Final message text or empty string
+        """
+        if not hasattr(task, "history"):
+            return ""
+
+        history = list(getattr(task, "history", []))
+        if not history:
+            return ""
+
+        last_message = history[-1]
+        if not hasattr(last_message, "parts"):
+            return ""
+
+        for part in last_message.parts:
+            part_data = part.root if hasattr(part, "root") else part
+            if hasattr(part_data, "text"):
+                text = part_data.text
+                return str(text) if text is not None else ""
+
+        return ""

@@ -5,6 +5,8 @@ services:
     command: uv run python -m agents.project_scanner.project_scanner_server
     ports:
       - "8301:8301"
+    volumes:
+      - /Users:/Users:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -25,6 +27,8 @@ services:
     command: uv run python -m agents.dependency_checker.dependency_checker_server
     ports:
       - "8302:8302"
+    volumes:
+      - /Users:/Users:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -45,6 +49,8 @@ services:
     command: uv run python -m agents.documentation_generator.documentation_generator_server
     ports:
       - "8303:8303"
+    volumes:
+      - /Users:/Users:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -65,6 +71,8 @@ services:
     command: uv run python -m agents.srp_violation_detector.srp_violation_detector_server
     ports:
       - "8304:8304"
+    volumes:
+      - /Users:/Users:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -85,6 +93,8 @@ services:
     command: uv run python -m agents.naming_quality_analyzer.naming_quality_analyzer_server
     ports:
       - "8305:8305"
+    volumes:
+      - /Users:/Users:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
@@ -105,6 +115,8 @@ services:
     command: uv run python -m agents.orchestrator.orchestrator_server
     ports:
       - "8306:8306"
+    volumes:
+      - /Users:/Users:ro
     environment:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - GEMINI_API_KEY=${GEMINI_API_KEY}

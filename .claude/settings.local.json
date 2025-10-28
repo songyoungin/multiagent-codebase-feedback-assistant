@@ -20,7 +20,8 @@
       "Bash(docker exec:*)",
       "Bash(docker-compose version:*)",
       "Bash(docker compose:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(uv run:*)"
     ],
     "deny": [],
     "ask": []

@@ -132,12 +132,12 @@ class DockerManager:
             check_interval: Time between health checks in seconds
         """
         endpoints = {
-            "Project Scanner": "http://localhost:8301/.well-known/agent-card",
-            "Dependency Checker": "http://localhost:8302/.well-known/agent-card",
-            "Documentation Generator": "http://localhost:8303/.well-known/agent-card",
-            "SRP Violation Detector": "http://localhost:8304/.well-known/agent-card",
-            "Naming Quality Analyzer": "http://localhost:8305/.well-known/agent-card",
-            "Orchestrator": "http://localhost:8306/.well-known/agent-card",
+            "Project Scanner": "http://localhost:8301/.well-known/agent-card.json",
+            "Dependency Checker": "http://localhost:8302/.well-known/agent-card.json",
+            "Documentation Generator": "http://localhost:8303/.well-known/agent-card.json",
+            "SRP Violation Detector": "http://localhost:8304/.well-known/agent-card.json",
+            "Naming Quality Analyzer": "http://localhost:8305/.well-known/agent-card.json",
+            "Orchestrator": "http://localhost:8306/.well-known/agent-card.json",
         }
 
         start_time = time.time()
@@ -153,7 +153,7 @@ class DockerManager:
                     if response.status_code == 200:
                         healthy.add(name)
                         console.print(f"  ✓ {name}")
-                except (httpx.ConnectError, httpx.TimeoutException):
+                except (httpx.ConnectError, httpx.TimeoutException, httpx.RemoteProtocolError):
                     pass
 
             if len(healthy) == len(endpoints):
