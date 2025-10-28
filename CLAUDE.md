@@ -15,30 +15,31 @@ multiagent-codebase-feedback-assistant/
 │   │   ├── create_a2a_server.py    # A2A server factory
 │   │   └── test_agent.py           # Local agent testing utilities
 │   ├── project_scanner/             # Project structure scanner
-│   │   ├── project_scanner_agent.py # Agent definition
-│   │   └── project_scanner_server.py # A2A server entry point
 │   ├── dependency_checker/          # Dependency checker
-│   │   ├── dependency_checker_agent.py # Agent definition
-│   │   └── dependency_checker_server.py # A2A server entry point
 │   ├── documentation_generator/     # Documentation analyzer
-│   │   ├── documentation_generator_agent.py # Agent definition
-│   │   └── documentation_generator_server.py # A2A server entry point
-│   └── srp_violation_detector/      # SRP violation detector
-│       ├── srp_violation_detector_agent.py # Agent definition
-│       └── srp_violation_detector_server.py # A2A server entry point
+│   ├── srp_violation_detector/      # SRP violation detector
+│   ├── naming_quality_analyzer/     # Naming quality analyzer
+│   └── orchestrator/                # Orchestrator agent (coordinates all agents)
+├── cli/                             # Command-line interface
+│   ├── main.py                     # CLI entry point
+│   ├── api_client.py               # A2A client for agents
+│   ├── docker_manager.py           # Docker container management
+│   └── formatters.py               # Output formatting utilities
 ├── common/                          # Shared modules
 │   ├── logger.py                   # Logging utilities
 │   ├── prompts.py                  # Agent system prompts
 │   ├── schemas.py                  # Data schemas
 │   └── settings.py                 # Configuration management
-├── tools/                           # Agent tools
+├── tools/                           # Agent tools (data collection)
 │   ├── filesystem_tool.py          # Filesystem scanning tool
 │   ├── dependency_checker_tool.py  # Dependency analysis tool
 │   ├── documentation_analyzer_tool.py # Documentation coverage tool
-│   └── srp_analyzer_tool.py        # SRP violation analysis tool
+│   ├── srp_analyzer_tool.py        # SRP violation analysis tool
+│   └── naming_quality_analyzer_tool.py # Naming quality analysis tool
 ├── typings/                         # Type stubs for third-party packages
 │   └── google/adk/                 # google-adk type stubs
-├── main.py                          # A2A client for testing agents
+├── main.py                          # Low-level A2A client for testing
+├── docker-compose.yml               # Docker deployment configuration
 └── pyproject.toml                   # Project configuration
 ```
 
@@ -66,65 +67,115 @@ uv add --dev <package-name>
 Create a `.env` file in the project root with the following variables:
 
 ```bash
-# OpenAI API configuration (required)
+# LLM API Keys (at least one required)
 OPENAI_API_KEY=your_openai_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here
 
 # LLM model configuration
-OPENAI_MODEL=openai/gpt-4o-mini
+DEFAULT_MODEL=openai/gpt-4o-mini
+LARGE_CONTEXT_MODEL=gemini/gemini-2.0-flash-exp
 
 # Shared bind host for all agents
 BIND_HOST=0.0.0.0
 
-# Project Scanner Agent configuration
+# Agent URLs (for localhost/manual deployment)
 PROJECT_SCANNER_AGENT_URL=http://localhost:8301
-
-# Dependency Checker Agent configuration
 DEPENDENCY_CHECKER_AGENT_URL=http://localhost:8302
-
-# Documentation Generator Agent configuration
 DOCUMENTATION_GENERATOR_AGENT_URL=http://localhost:8303
-
-# SRP Violation Detector Agent configuration
 SRP_VIOLATION_DETECTOR_AGENT_URL=http://localhost:8304
-
-# Filesystem MCP configuration
-FILESYSTEM_MCP_ENABLED=true
+NAMING_QUALITY_ANALYZER_AGENT_URL=http://localhost:8305
+ORCHESTRATOR_AGENT_URL=http://localhost:8306
 ```
 
 See [.env.example](.env.example) for reference.
 
 ### Running the Application
 
-#### Starting an Agent Server
+#### Option 1: Docker Deployment (Recommended)
 
-Each agent runs as a standalone A2A server:
+Use the CLI tool to manage Docker containers:
 
 ```bash
-# Start the Project Scanner Agent server
-uv run python -m agents.project_scanner.project_scanner_server
+# Start all agent servers
+uv run codebase-analyzer server start
 
-# Start the Dependency Checker Agent server
-uv run python -m agents.dependency_checker.dependency_checker_server
+# Check server status
+uv run codebase-analyzer server status
 
-# Start the Documentation Generator Agent server
-uv run python -m agents.documentation_generator.documentation_generator_server
+# Stop all servers
+uv run codebase-analyzer server stop
 
-# Start the SRP Violation Detector Agent server
-uv run python -m agents.srp_violation_detector.srp_violation_detector_server
+# Restart servers
+uv run codebase-analyzer server restart
 ```
 
-The servers will start on the ports specified in their respective URL settings:
-- Project Scanner: default 8301
-- Dependency Checker: default 8302
-- Documentation Generator: default 8303
-- SRP Violation Detector: default 8304
+**Docker Configuration**:
+- All agents run in separate containers via `docker-compose.yml`
+- Host filesystem is mounted as read-only at `/Users:/Users:ro`
+- This allows agents to access project files on the host machine
+- Ports 8301-8306 are exposed for agent communication
 
-#### Using the A2A Client
+#### Option 2: Manual Agent Server Startup
 
-Once an agent server is running, use the client to send requests:
+Each agent can be run as a standalone A2A server:
 
 ```bash
-# Send a command to the Project Scanner Agent
+# Start individual agent servers
+uv run python -m agents.project_scanner.project_scanner_server        # Port 8301
+uv run python -m agents.dependency_checker.dependency_checker_server   # Port 8302
+uv run python -m agents.documentation_generator.documentation_generator_server  # Port 8303
+uv run python -m agents.srp_violation_detector.srp_violation_detector_server    # Port 8304
+uv run python -m agents.naming_quality_analyzer.naming_quality_analyzer_server  # Port 8305
+uv run python -m agents.orchestrator.orchestrator_server               # Port 8306
+```
+
+#### Using the CLI (High-Level Interface)
+
+The `codebase-analyzer` CLI provides user-friendly commands:
+
+```bash
+# Scan project structure
+uv run codebase-analyzer scan /path/to/project
+
+# Check for unused dependencies
+uv run codebase-analyzer check-deps /path/to/project
+
+# Analyze documentation coverage
+uv run codebase-analyzer check-docs /path/to/project
+uv run codebase-analyzer check-docs /path/to/project --include-private
+
+# Check for SRP violations
+uv run codebase-analyzer check-srp /path/to/project
+uv run codebase-analyzer check-srp /path/to/project --max-items 50 --include-private
+
+# Analyze naming quality
+uv run codebase-analyzer check-naming /path/to/project
+uv run codebase-analyzer check-naming /path/to/project --max-items 30 --include-private
+
+# Run all analyses
+uv run codebase-analyzer analyze-all /path/to/project
+
+# Natural language queries (uses Orchestrator)
+uv run codebase-analyzer ask "Analyze the entire project at /path/to/project"
+uv run codebase-analyzer ask "Check for code quality issues in /path/to/project"
+uv run codebase-analyzer ask "What improvements can be made to /path/to/project?"
+
+# One-shot mode (start servers, analyze, stop servers)
+uv run codebase-analyzer scan /path/to/project --oneshot
+```
+
+**CLI Features**:
+- Automatically manages Docker containers (starts/stops as needed)
+- Uses A2A protocol to communicate with agents
+- Rich formatted output using the `rich` library
+- Supports both command-based and natural language queries
+
+#### Using the Low-Level A2A Client
+
+For direct agent testing, use `main.py`:
+
+```bash
+# Send a command to a specific agent
 uv run python main.py \
   --agent-url http://localhost:8301 \
   --command "Scan the project at /path/to/your/project"
@@ -266,31 +317,123 @@ Unlike ruff, pylint, or other static analyzers that check syntax and metrics, th
 
 **Usage**:
 ```bash
-# Start the server
-uv run python -m agents.srp_violation_detector.srp_violation_detector_server
+# Via CLI (recommended)
+uv run codebase-analyzer check-srp /path/to/project
+uv run codebase-analyzer check-srp /path/to/project --max-items 50 --include-private
 
-# Send a request (analyze public items, max 20)
+# Via low-level client
 uv run python main.py \
   --agent-url http://localhost:8304 \
   --command "Analyze SRP violations in /path/to/project"
-
-# Analyze more items
-uv run python main.py \
-  --agent-url http://localhost:8304 \
-  --command "Analyze SRP violations in /path/to/project, check up to 50 items"
-
-# Include private methods
-uv run python main.py \
-  --agent-url http://localhost:8304 \
-  --command "Analyze SRP violations including private methods in /path/to/project"
 ```
+
+#### Naming Quality Analyzer Agent
+**Location**: `agents/naming_quality_analyzer/`
+
+Analyzes naming quality in Python code using semantic understanding.
+
+**Capabilities**:
+- Evaluate variable, function, class, and module names
+- Check for clarity, specificity, and adherence to Python conventions
+- Identify generic names (e.g., `data`, `temp`, `handler`)
+- Detect misleading or ambiguous names
+- Categorize issues by severity (Critical/High/Medium/Low)
+- Provide specific renaming suggestions
+
+**Tools**:
+- `analyze_naming_quality`: Extracts code items and returns a `NamingAnalysisResult` object
+  - Scans all Python files for named entities
+  - Analyzes names in context (considering surrounding code)
+  - Optional: `max_items=N` to limit analysis (default: 30)
+  - Optional: `include_private=true` to analyze private items
+
+**Usage**:
+```bash
+# Via CLI (recommended)
+uv run codebase-analyzer check-naming /path/to/project
+uv run codebase-analyzer check-naming /path/to/project --max-items 50 --include-private
+
+# Via low-level client
+uv run python main.py \
+  --agent-url http://localhost:8305 \
+  --command "Analyze naming quality in /path/to/project"
+```
+
+#### Orchestrator Agent
+**Location**: `agents/orchestrator/`
+
+Coordinates multiple agents to provide comprehensive codebase analysis from natural language queries.
+
+**Capabilities**:
+- Parse natural language queries to understand user intent
+- Determine which agents are needed for the analysis
+- Coordinate multiple agents and synthesize their results
+- Generate comprehensive, coherent reports
+- Provide prioritized recommendations across all analysis dimensions
+
+**Available Sub-Agents**:
+- `project_scanner`: Project structure and file statistics
+- `dependency_checker`: Unused dependency detection
+- `documentation_generator`: Documentation coverage analysis
+- `srp_violation_detector`: Single Responsibility Principle violations
+- `naming_quality_analyzer`: Naming quality assessment
+
+**Usage**:
+```bash
+# Via CLI (recommended - natural language interface)
+uv run codebase-analyzer ask "Analyze the entire project at /path/to/project"
+uv run codebase-analyzer ask "Check for code quality issues in /path/to/project and focus on SRP violations"
+uv run codebase-analyzer ask "What improvements can be made to /path/to/project?"
+
+# Via low-level client
+uv run python main.py \
+  --agent-url http://localhost:8306 \
+  --command "Analyze the entire project at /path/to/project"
+```
+
+**Key Features**:
+- Intelligently selects relevant agents based on query
+- Handles follow-up questions and refinements
+- Provides executive summaries and priority action items
+- Synthesizes findings across multiple analysis domains
 
 ### Key Dependencies
 - `google-adk[a2a]`: Google AI Development Kit with Agent-to-Agent capabilities
 - `litellm`: Multi-provider LLM API wrapper (supports OpenAI, Anthropic, etc.)
 - `pydantic`: Data validation and settings management
 - `fastapi` + `uvicorn`: A2A server implementation
+- `click`: CLI framework
+- `docker`: Docker SDK for Python (container management)
+- `rich`: Terminal output formatting
+- `httpx`: HTTP client for A2A communication
 - Python 3.13 or higher is required
+
+### CLI Architecture
+
+The CLI (`cli/`) provides a high-level interface to the multi-agent system:
+
+**Components**:
+- `main.py`: Click-based CLI with commands for server management and analysis
+- `api_client.py`: A2A client that communicates with agent servers
+  - Uses async/await for efficient communication
+  - Overrides agent card URLs for Docker compatibility (converts internal hostnames to localhost)
+- `docker_manager.py`: Manages Docker Compose lifecycle
+  - Starts/stops containers
+  - Monitors container health
+  - Handles volume mounts for file access
+- `formatters.py`: Rich-based output formatting for user-friendly results
+
+**Docker Integration**:
+- CLI runs on the host machine (outside Docker)
+- Agents run inside Docker containers
+- Volume mount `/Users:/Users:ro` allows agents to read host files
+- Agent card URLs are overridden from internal names (e.g., `project-scanner:8301`) to `localhost:8301`
+
+**Key Design Decision**:
+The CLI uses the A2A protocol (not simple HTTP POST) to communicate with agents. This ensures:
+- Standard protocol compliance
+- Streaming support
+- Compatibility with agent card resolution
 
 ## Development Guidelines
 
@@ -507,3 +650,67 @@ def my_tool(param: Optional[str] = None) -> dict:  # noqa: UP045
 ```
 
 Add `# noqa: UP045` to suppress ruff's suggestion to use `| None` syntax.
+
+## Docker Deployment
+
+### Volume Mounts
+The `docker-compose.yml` mounts the host's `/Users` directory as read-only:
+
+```yaml
+volumes:
+  - /Users:/Users:ro
+```
+
+This allows agents running inside containers to access project files on the host machine. Without this, agents cannot read the files they are analyzing.
+
+### A2A URL Resolution
+Agent servers return agent cards with internal Docker hostnames (e.g., `http://project-scanner:8301`). The CLI runs outside Docker and cannot resolve these hostnames.
+
+**Solution**: The CLI's `api_client.py` overrides the agent card URL:
+```python
+card = await card_resolver.get_agent_card()
+card.url = agent_url  # Override with localhost:8301
+```
+
+This converts internal Docker hostnames to `localhost` for external access.
+
+### Port Mapping
+- 8301: Project Scanner
+- 8302: Dependency Checker
+- 8303: Documentation Generator
+- 8304: SRP Violation Detector
+- 8305: Naming Quality Analyzer
+- 8306: Orchestrator
+
+## Testing Agents
+
+### Testing Individual Agents Locally
+```bash
+# Start the agent server
+uv run python -m agents.project_scanner.project_scanner_server
+
+# Test with low-level client
+uv run python main.py \
+  --agent-url http://localhost:8301 \
+  --command "Scan the project at /path/to/project"
+```
+
+### Testing via CLI
+```bash
+# Start all servers
+uv run codebase-analyzer server start
+
+# Run analysis
+uv run codebase-analyzer scan /path/to/project
+
+# Stop servers
+uv run codebase-analyzer server stop
+```
+
+### One-Shot Testing
+For quick testing without managing servers:
+```bash
+uv run codebase-analyzer scan /path/to/project --oneshot
+```
+
+This automatically starts servers, runs analysis, and stops servers.
