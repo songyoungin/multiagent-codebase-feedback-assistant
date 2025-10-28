@@ -11,6 +11,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
       - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
       - BIND_HOST=0.0.0.0
+      - PROJECT_SCANNER_AGENT_URL=http://project-scanner:8301
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8301/.well-known/agent-card.json"]
       interval: 10s
@@ -30,6 +31,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
       - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
       - BIND_HOST=0.0.0.0
+      - DEPENDENCY_CHECKER_AGENT_URL=http://dependency-checker:8302
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8302/.well-known/agent-card.json"]
       interval: 10s
@@ -49,6 +51,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
       - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
       - BIND_HOST=0.0.0.0
+      - DOCUMENTATION_GENERATOR_AGENT_URL=http://documentation-generator:8303
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8303/.well-known/agent-card.json"]
       interval: 10s
@@ -68,6 +71,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
       - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
       - BIND_HOST=0.0.0.0
+      - SRP_VIOLATION_DETECTOR_AGENT_URL=http://srp-violation-detector:8304
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8304/.well-known/agent-card.json"]
       interval: 10s
@@ -87,6 +91,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
       - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
       - BIND_HOST=0.0.0.0
+      - NAMING_QUALITY_ANALYZER_AGENT_URL=http://naming-quality-analyzer:8305
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8305/.well-known/agent-card.json"]
       interval: 10s
@@ -106,6 +111,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL:-openai/gpt-4o-mini}
       - LARGE_CONTEXT_MODEL=${LARGE_CONTEXT_MODEL:-gemini/gemini-2.0-flash-exp}
       - BIND_HOST=0.0.0.0
+      - ORCHESTRATOR_AGENT_URL=http://orchestrator:8306
       - PROJECT_SCANNER_AGENT_URL=http://project-scanner:8301
       - DEPENDENCY_CHECKER_AGENT_URL=http://dependency-checker:8302
       - DOCUMENTATION_GENERATOR_AGENT_URL=http://documentation-generator:8303

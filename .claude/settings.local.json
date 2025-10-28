@@ -19,7 +19,8 @@
       "Bash(docker logs:*)",
       "Bash(docker exec:*)",
       "Bash(docker-compose version:*)",
-      "Bash(docker compose:*)"
+      "Bash(docker compose:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

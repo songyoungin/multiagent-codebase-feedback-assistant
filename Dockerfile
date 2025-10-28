@@ -26,6 +26,7 @@ COPY agents/ ./agents/
 COPY common/ ./common/
 COPY tools/ ./tools/
 COPY typings/ ./typings/
+COPY main.py ./
 
 # Install project
 RUN --mount=type=cache,target=/root/.cache/uv \
