@@ -9,27 +9,38 @@ import click
 from cli.api_client import AgentClient
 from cli.docker_manager import DockerManager
 from cli.formatters import print_error, print_response, print_status_table, print_success
+from common.settings import settings
 
 
 @click.group()
 @click.version_option(version="0.1.0")
-def cli() -> None:
+@click.option(
+    "--volume-mount",
+    default=None,
+    help=f"Host path to mount in Docker containers (default: {settings.volume_mount})",
+)
+@click.pass_context
+def cli(ctx: click.Context, volume_mount: str | None) -> None:
     """Codebase Analyzer - AI-powered code analysis using multi-agent system."""
-    pass
+    ctx.ensure_object(dict)
+    ctx.obj["volume_mount"] = volume_mount or settings.volume_mount
 
 
 @cli.group()
-def server() -> None:
+@click.pass_context
+def server(ctx: click.Context) -> None:
     """Manage analysis server lifecycle."""
     pass
 
 
 @server.command()
-def start() -> None:
+@click.pass_context
+def start(ctx: click.Context) -> None:
     """Start all analysis servers."""
     try:
         manager = DockerManager()
-        manager.start_containers()
+        volume_mount = ctx.obj["volume_mount"]
+        manager.start_containers(volume_mount=volume_mount)
     except Exception as e:
         print_error(f"Failed to start servers: {e}")
         raise click.Abort() from e
@@ -47,11 +58,13 @@ def stop() -> None:
 
 
 @server.command()
-def restart() -> None:
+@click.pass_context
+def restart(ctx: click.Context) -> None:
     """Restart all analysis servers."""
     try:
         manager = DockerManager()
-        manager.restart_containers()
+        volume_mount = ctx.obj["volume_mount"]
+        manager.restart_containers(volume_mount=volume_mount)
     except Exception as e:
         print_error(f"Failed to restart servers: {e}")
         raise click.Abort() from e
@@ -72,15 +85,17 @@ def status() -> None:
 @cli.command()
 @click.argument("project_path", type=click.Path(exists=True))
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def scan(project_path: str, oneshot: bool) -> None:
+@click.pass_context
+def scan(ctx: click.Context, project_path: str, oneshot: bool) -> None:
     """Scan project structure and collect statistics."""
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Call agent
         result = client.scan_project(str(Path(project_path).absolute()))
@@ -98,15 +113,17 @@ def scan(project_path: str, oneshot: bool) -> None:
 @cli.command()
 @click.argument("project_path", type=click.Path(exists=True))
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def check_deps(project_path: str, oneshot: bool) -> None:
+@click.pass_context
+def check_deps(ctx: click.Context, project_path: str, oneshot: bool) -> None:
     """Check for unused dependencies."""
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Call agent
         result = client.check_dependencies(str(Path(project_path).absolute()))
@@ -125,15 +142,17 @@ def check_deps(project_path: str, oneshot: bool) -> None:
 @click.argument("project_path", type=click.Path(exists=True))
 @click.option("--include-private", is_flag=True, help="Include private methods/functions")
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def check_docs(project_path: str, include_private: bool, oneshot: bool) -> None:
+@click.pass_context
+def check_docs(ctx: click.Context, project_path: str, include_private: bool, oneshot: bool) -> None:
     """Analyze documentation coverage."""
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Call agent
         result = client.analyze_documentation(str(Path(project_path).absolute()), include_private=include_private)
@@ -153,15 +172,17 @@ def check_docs(project_path: str, include_private: bool, oneshot: bool) -> None:
 @click.option("--max-items", default=20, help="Maximum number of items to analyze")
 @click.option("--include-private", is_flag=True, help="Include private methods/functions")
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def check_srp(project_path: str, max_items: int, include_private: bool, oneshot: bool) -> None:
+@click.pass_context
+def check_srp(ctx: click.Context, project_path: str, max_items: int, include_private: bool, oneshot: bool) -> None:
     """Check for Single Responsibility Principle violations."""
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Call agent
         result = client.check_srp_violations(
@@ -183,15 +204,17 @@ def check_srp(project_path: str, max_items: int, include_private: bool, oneshot:
 @click.option("--max-items", default=30, help="Maximum number of items to analyze")
 @click.option("--include-private", is_flag=True, help="Include private methods/functions")
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def check_naming(project_path: str, max_items: int, include_private: bool, oneshot: bool) -> None:
+@click.pass_context
+def check_naming(ctx: click.Context, project_path: str, max_items: int, include_private: bool, oneshot: bool) -> None:
     """Analyze naming quality."""
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Call agent
         result = client.analyze_naming_quality(
@@ -211,10 +234,12 @@ def check_naming(project_path: str, max_items: int, include_private: bool, onesh
 @cli.command()
 @click.argument("project_path", type=click.Path(exists=True))
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def analyze_all(project_path: str, oneshot: bool) -> None:
+@click.pass_context
+def analyze_all(ctx: click.Context, project_path: str, oneshot: bool) -> None:
     """Run all available analyses on the project."""
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     analyses: list[tuple[str, Callable[[], dict[str, Any]]]] = [
         ("Project Structure", lambda: client.scan_project(project_path)),
@@ -227,7 +252,7 @@ def analyze_all(project_path: str, oneshot: bool) -> None:
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Run all analyses
         for name, analysis_func in analyses:
@@ -255,7 +280,8 @@ def analyze_all(project_path: str, oneshot: bool) -> None:
 @cli.command()
 @click.argument("query")
 @click.option("--oneshot", is_flag=True, help="Start servers, analyze, then stop servers")
-def ask(query: str, oneshot: bool) -> None:
+@click.pass_context
+def ask(ctx: click.Context, query: str, oneshot: bool) -> None:
     """Ask orchestrator in natural language.
 
     The orchestrator will analyze your query and coordinate the appropriate
@@ -268,11 +294,12 @@ def ask(query: str, oneshot: bool) -> None:
     """
     manager = DockerManager()
     client = AgentClient()
+    volume_mount = ctx.obj["volume_mount"]
 
     try:
         # Ensure servers are running
         if oneshot or not manager.are_containers_running():
-            manager.start_containers()
+            manager.start_containers(volume_mount=volume_mount)
 
         # Call orchestrator
         result = client.query_orchestrator(query)

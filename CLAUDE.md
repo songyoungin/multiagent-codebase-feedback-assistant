@@ -85,6 +85,9 @@ DOCUMENTATION_GENERATOR_AGENT_URL=http://localhost:8303
 SRP_VIOLATION_DETECTOR_AGENT_URL=http://localhost:8304
 NAMING_QUALITY_ANALYZER_AGENT_URL=http://localhost:8305
 ORCHESTRATOR_AGENT_URL=http://localhost:8306
+
+# Docker volume mount (host path to mount in containers)
+VOLUME_MOUNT=/Users  # macOS default, use C:/Users for Windows, /home for Linux
 ```
 
 See [.env.example](.env.example) for reference.
@@ -111,7 +114,8 @@ uv run codebase-analyzer server restart
 
 **Docker Configuration**:
 - All agents run in separate containers via `docker-compose.yml`
-- Host filesystem is mounted as read-only at `/Users:/Users:ro`
+- Host filesystem is mounted as read-only (default: `/Users:/Users:ro` for macOS)
+- Volume mount path can be customized via `--volume-mount` CLI option or `VOLUME_MOUNT` environment variable
 - This allows agents to access project files on the host machine
 - Ports 8301-8306 are exposed for agent communication
 
@@ -162,6 +166,10 @@ uv run codebase-analyzer ask "What improvements can be made to /path/to/project?
 
 # One-shot mode (start servers, analyze, stop servers)
 uv run codebase-analyzer scan /path/to/project --oneshot
+
+# Custom volume mount (for Windows or other OS)
+uv run codebase-analyzer --volume-mount "C:/Users" scan /path/to/project
+uv run codebase-analyzer --volume-mount "/home" server start
 ```
 
 **CLI Features**:
@@ -169,6 +177,7 @@ uv run codebase-analyzer scan /path/to/project --oneshot
 - Uses A2A protocol to communicate with agents
 - Rich formatted output using the `rich` library
 - Supports both command-based and natural language queries
+- Customizable volume mount path via `--volume-mount` option
 
 #### Using the Low-Level A2A Client
 

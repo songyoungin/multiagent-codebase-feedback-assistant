@@ -1,5 +1,6 @@
 """Docker Compose management for agent servers."""
 
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -62,8 +63,12 @@ class DockerManager:
         except Exception:
             return False
 
-    def start_containers(self) -> None:
-        """Start all agent containers using docker-compose."""
+    def start_containers(self, volume_mount: str | None = None) -> None:
+        """Start all agent containers using docker-compose.
+
+        Args:
+            volume_mount: Host path to mount in containers (defaults to /Users)
+        """
         if self.are_containers_running():
             console.print("✓ [green]Servers already running[/green]")
             return
@@ -71,9 +76,16 @@ class DockerManager:
         console.print("🚀 [yellow]Starting analysis servers...[/yellow]")
 
         try:
+            # Prepare environment variables
+            env = os.environ.copy()
+            if volume_mount:
+                env["VOLUME_MOUNT"] = volume_mount
+                console.print(f"📁 [cyan]Using volume mount: {volume_mount}[/cyan]")
+
             result = subprocess.run(
                 ["docker", "compose", "up", "-d"],
                 cwd=self.project_root,
+                env=env,
                 check=True,
                 capture_output=True,
                 text=True,
@@ -119,10 +131,14 @@ class DockerManager:
                 console.print(f"[red]Error: {e.stderr}[/red]")
             raise
 
-    def restart_containers(self) -> None:
-        """Restart all agent containers."""
+    def restart_containers(self, volume_mount: str | None = None) -> None:
+        """Restart all agent containers.
+
+        Args:
+            volume_mount: Host path to mount in containers (defaults to /Users)
+        """
         self.stop_containers()
-        self.start_containers()
+        self.start_containers(volume_mount=volume_mount)
 
     def _wait_for_healthy(self, timeout: int = 60, check_interval: int = 2) -> None:
         """Wait for all agent endpoints to be healthy.

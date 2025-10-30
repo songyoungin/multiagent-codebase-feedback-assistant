@@ -25,6 +25,7 @@ class AppSettings(BaseSettings):
     naming_quality_analyzer_agent_url: str = "http://localhost:8305"
     orchestrator_agent_url: str = "http://localhost:8306"
     filesystem_mcp_enabled: bool = True
+    volume_mount: str = "/Users"  # Default host path to mount in Docker containers
 
     def get_port_from_url(self, url: str) -> int:
         """Extract port number from URL.
