@@ -26,6 +26,10 @@ class AppSettings(BaseSettings):
     orchestrator_agent_url: str = "http://localhost:8306"
     filesystem_mcp_enabled: bool = True
     volume_mount: str = "/Users"  # Default host path to mount in Docker containers
+    langfuse_public_key: str = ""
+    langfuse_secret_key: str = ""
+    langfuse_host: str = "https://cloud.langfuse.com"
+    langfuse_cache_ttl: int = 300  # Cache TTL in seconds (default: 5 minutes)
 
     def get_port_from_url(self, url: str) -> int:
         """Extract port number from URL.
