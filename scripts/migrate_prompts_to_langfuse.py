@@ -1,10 +1,10 @@
-"""기존 프롬프트를 Langfuse에 업로드하는 마이그레이션 스크립트."""
+"""Migration script to upload existing prompts to Langfuse."""
 
 from langfuse import Langfuse
 
 from common.settings import settings
 
-# 기존 프롬프트 정의 (common/prompts.py에서 복사)
+# Existing prompt definitions (copied from common/prompts.py)
 PROMPTS = {
     "project_scanner": """
 You are a specialized agent that analyzes project structures.
@@ -501,7 +501,7 @@ CRITICAL REMINDERS:
 
 
 def migrate_prompts() -> None:
-    """기존 프롬프트를 Langfuse에 업로드."""
+    """Upload existing prompts to Langfuse."""
     print("Initializing Langfuse client...")
     client = Langfuse(
         public_key=settings.langfuse_public_key,

@@ -2,7 +2,7 @@
 
 from typing import Any
 
-# Agent는 실제로 LlmAgent를 가리킴
+# Agent is actually an alias for LlmAgent
 class LlmAgent:
     """LLM-based Agent."""
     name: str
